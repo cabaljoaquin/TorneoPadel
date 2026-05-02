@@ -1,5 +1,5 @@
 -- =========================================================================
--- TORNEO TENIS - FASE ELIMINATORIA: CONFIGURACIÓN DE LLAVE
+-- TORNEO PADEL - FASE ELIMINATORIA: CONFIGURACIÓN DE LLAVE
 -- Ejecutá esto en el "SQL Editor" de Supabase.
 -- =========================================================================
 

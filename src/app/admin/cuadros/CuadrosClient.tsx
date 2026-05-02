@@ -466,8 +466,8 @@ export default function CuadrosWorkspace({ userId }: Props) {
     }
 
     const handleSaveKnockoutMatch = async () => {
-      if (!knockoutForm.p1 || !knockoutForm.p2) return showToast('Seleccioná los 2 jugadores.', 'error')
-      if (knockoutForm.p1 === knockoutForm.p2) return showToast('Los jugadores no pueden ser el mismo.', 'error')
+      if (!knockoutForm.p1 || !knockoutForm.p2) return showToast('Seleccioná las 2 parejas.', 'error')
+      if (knockoutForm.p1 === knockoutForm.p2) return showToast('Las parejas no pueden ser la misma.', 'error')
       setIsSavingKnockout(true)
 
       const isWinnerP1 = knockoutForm.p1.startsWith('winner_of_')
@@ -640,11 +640,11 @@ export default function CuadrosWorkspace({ userId }: Props) {
                   Disponibles
                   <span className="bg-surface-border text-slate-300 px-2 py-0.5 rounded text-xs">{jugadoresSueltos.length} restantes</span>
                 </h3>
-                <p className="text-xs text-slate-500 mb-4">Click en el menú del jugador para asignarlo a una zona.</p>
+                <p className="text-xs text-slate-500 mb-4">Click en el menú de la pareja para asignarla a una zona.</p>
                 <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1 pb-12 custom-scrollbar">
                   {jugadoresSueltos.length === 0 ? (
                     <div className="text-center p-4 border border-dashed border-surface-border rounded-lg text-slate-500 text-sm">
-                      No hay jugadores pendientes
+                      No hay parejas pendientes
                     </div>
                   ) : (
                     jugadoresSueltos.map(ins => (
@@ -781,7 +781,7 @@ export default function CuadrosWorkspace({ userId }: Props) {
                                 if (selected) handleAssignToZone(zona.id, selected)
                               }}
                             >
-                              <option value="" disabled>+ Agregar jugador...</option>
+                              <option value="" disabled>+ Agregar pareja...</option>
                               {jugadoresSueltos.map(ins => (
                                 <option key={ins.id} value={ins.participante_id}>{ins.participantes.nombre_mostrado}</option>
                               ))}
@@ -831,14 +831,14 @@ export default function CuadrosWorkspace({ userId }: Props) {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-400">Jugador 1</label>
+                      <label className="text-xs font-semibold text-slate-400">Pareja 1</label>
                       <select className="input-field w-full text-sm" value={matchForm.p1} onChange={e => setMatchForm({ ...matchForm, p1: e.target.value })}>
                         <option value="">Seleccionar...</option>
                         {zonaScheduling.jugadores.map(j => <option key={j.pId} value={j.pId}>{j.nombre_mostrado}</option>)}
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-400">Jugador 2</label>
+                      <label className="text-xs font-semibold text-slate-400">Pareja 2</label>
                       <select className="input-field w-full text-sm" value={matchForm.p2} onChange={e => setMatchForm({ ...matchForm, p2: e.target.value })}>
                         <option value="">Seleccionar...</option>
                         {zonaScheduling.jugadores.map(j => <option key={j.pId} value={j.pId}>{j.nombre_mostrado}</option>)}
@@ -1027,7 +1027,7 @@ export default function CuadrosWorkspace({ userId }: Props) {
                       </div>
                       <div className="flex items-center justify-between p-2 rounded-lg bg-surface-card border border-surface-border/50">
                         <span className="text-sm font-semibold text-slate-200">
-                          {m.p2 ? m.p2.nombre_mostrado : sourceP2 ? <span className="text-amber-500 italic">Esperando Ganador {sourceP2.fase_bracket} P{(sourceP2.bracket_index || 0) + 1}</span> : 'Jugador 2'}
+                          {m.p2 ? m.p2.nombre_mostrado : sourceP2 ? <span className="text-amber-500 italic">Esperando Ganador {sourceP2.fase_bracket} P{(sourceP2.bracket_index || 0) + 1}</span> : 'Pareja 2'}
                         </span>
                       </div>
                     </div>

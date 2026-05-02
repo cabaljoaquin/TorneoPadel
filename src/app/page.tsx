@@ -5,8 +5,8 @@ import { TorneosGrid, HeroText } from './TorneosGrid'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'TorneoTenis — Viví tus torneos más de cerca',
-  description: 'Seguí llaves, resultados y posiciones en tiempo real de todos los torneos de tenis.',
+  title: 'TorneoPadel — Viví tus torneos más de cerca',
+  description: 'Seguí llaves, resultados y posiciones en tiempo real de todos los torneos de padel.',
 }
 
 export default async function PublicHomePage() {
@@ -33,7 +33,7 @@ export default async function PublicHomePage() {
         {/* Imagen de fondo */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=1920&auto=format&fit=crop')" }}
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1646649853703-7645147474ba?q=80&w=1920&auto=format&fit=crop')" }}
         />
         {/* Overlay gradiente */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-surface" />

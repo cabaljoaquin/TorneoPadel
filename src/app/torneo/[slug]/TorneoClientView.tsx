@@ -739,7 +739,7 @@ function TorneoContent({ torneoId }: { torneoId: string }) {
                             <table className="w-full text-sm text-left">
                               <thead className="text-[10px] uppercase text-slate-500 bg-surface/30">
                                 <tr>
-                                  <th className="px-4 py-2 font-semibold">Jugador</th>
+                                  <th className="px-4 py-2 font-semibold">Pareja</th>
                                   <th className="px-2 py-2 font-semibold text-center" title="Partidos Jugados">PJ</th>
                                   <th className="px-2 py-2 font-semibold text-center text-green-400/70" title="Partidos Ganados">PG</th>
                                   <th className="px-2 py-2 font-semibold text-center text-red-400/70" title="Partidos Perdidos">PP</th>

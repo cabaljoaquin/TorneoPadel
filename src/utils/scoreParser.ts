@@ -1,4 +1,4 @@
-export function parseTennisScore(input: string): any[] {
+export function parsePadelScore(input: string): any[] {
   const str = input.replace(/\D/g, '')
   if (str.length === 0) return []
 

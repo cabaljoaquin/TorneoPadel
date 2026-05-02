@@ -2,7 +2,7 @@
 
 import { motion, Variants } from 'framer-motion'
 import Link from 'next/link'
-import { Users, User, CalendarDays, Trophy, ArrowRight } from 'lucide-react'
+import { Users, CalendarDays, Trophy, ArrowRight } from 'lucide-react'
 
 interface Torneo {
   id: string
@@ -107,8 +107,8 @@ export function TorneosGrid({ torneos }: Props) {
               <span>{formatDate(t.fecha_inicio ?? t.created_at)}</span>
             </div>
             <div className="flex items-center gap-2">
-              {t.modalidad === 'doble' ? <Users size={13} /> : <User size={13} />}
-              <span className="capitalize">{t.modalidad ?? 'Single'}</span>
+              <Users size={13} />
+              <span className="capitalize">Parejas</span>
             </div>
           </div>
 

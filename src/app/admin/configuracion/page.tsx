@@ -64,7 +64,7 @@ export default function ConfiguracionPage() {
                 value={sedeName}
                 onChange={e => setSedeName(e.target.value)}
                 className="input-field" 
-                placeholder="Ej: Club de Tenis Las Lomas" 
+                placeholder="Ej: Club de Padel Las Lomas" 
               />
             </div>
             <label className="flex items-center gap-2 cursor-pointer">

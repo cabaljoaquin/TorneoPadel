@@ -104,21 +104,12 @@ export default function InscripcionesClient({ userId }: Props) {
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (searchQuery.length >= 2) {
-        const torneoActivo = torneos.find(t => t.id === torneoActivoId)
-        const isDoble = torneoActivo?.modalidad === 'doble'
-
-        let query = supabase
+        const { data } = await supabase
           .from('participantes')
           .select('*')
           .ilike('nombre_mostrado', `%${searchQuery}%`)
-
-        if (isDoble) {
-          query = query.ilike('nombre_mostrado', '% - %')
-        } else {
-          query = query.not('nombre_mostrado', 'ilike', '% - %')
-        }
-
-        const { data } = await query.limit(5)
+          .ilike('nombre_mostrado', '% - %')
+          .limit(5)
         setParticipantesDb(data || [])
         setShowDropdown(true)
       } else {
@@ -127,7 +118,7 @@ export default function InscripcionesClient({ userId }: Props) {
       }
     }, 400)
     return () => clearTimeout(delayDebounceFn)
-  }, [searchQuery, torneoActivoId, torneos])
+  }, [searchQuery])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -135,38 +126,20 @@ export default function InscripcionesClient({ userId }: Props) {
     setIsSubmitting(true)
     setFormMsg(null)
 
-    const torneoActivo = torneos.find(t => t.id === torneoActivoId)
     const cap = (s: string) => s ? s.trim().charAt(0).toUpperCase() + s.trim().slice(1).toLowerCase() : ''
-    const isDoble = torneoActivo?.modalidad === 'doble'
 
     let finalParticipanteId = selectedParticipante?.id
 
     if (!finalParticipanteId) {
-      let insertData = {}
-
-      if (isDoble) {
-        if (!nuevoApellido || !nuevoApellido2) {
-          setFormMsg({ type: 'error', text: 'Completá el apellido de ambos jugadores.' })
-          setIsSubmitting(false)
-          return
-        }
-        const a1 = cap(nuevoApellido)
-        const a2 = cap(nuevoApellido2)
-        const concatenatedName = `${a1} - ${a2}`
-        insertData = { nombre: '', apellido: concatenatedName, nombre_mostrado: concatenatedName }
-      } else {
-        if (!nuevoApellido) {
-          setFormMsg({ type: 'error', text: 'Completá al menos el apellido.' })
-          setIsSubmitting(false)
-          return
-        }
-        const a1 = cap(nuevoApellido)
-        const n1 = nuevoNombre.trim() ? cap(nuevoNombre) : ''
-        const nombreMostradoGenerado = n1
-          ? `${n1.charAt(0).toUpperCase()}. ${a1}`
-          : a1
-        insertData = { nombre: n1, apellido: a1, nombre_mostrado: nombreMostradoGenerado }
+      if (!nuevoApellido || !nuevoApellido2) {
+        setFormMsg({ type: 'error', text: 'Completá el apellido de ambos jugadores.' })
+        setIsSubmitting(false)
+        return
       }
+      const a1 = cap(nuevoApellido)
+      const a2 = cap(nuevoApellido2)
+      const concatenatedName = `${a1} - ${a2}`
+      const insertData = { nombre: '', apellido: concatenatedName, nombre_mostrado: concatenatedName }
 
       const { data: newP, error: pError } = await supabase
         .from('participantes')
@@ -191,23 +164,15 @@ export default function InscripcionesClient({ userId }: Props) {
 
     if (insError) {
       if (insError.code === '23505') {
-        setFormMsg({ type: 'error', text: 'Este jugador ya está inscripto en el torneo.' })
+        setFormMsg({ type: 'error', text: 'Esta pareja ya está inscripta en el torneo.' })
       } else {
         setFormMsg({ type: 'error', text: 'Error en inscripción: ' + insError.message })
       }
     } else {
-      // Optimistic update: add immediately to list without flicker
       const a1 = cap(nuevoApellido)
       const a2 = cap(nuevoApellido2)
-      const n1 = nuevoNombre.trim() ? cap(nuevoNombre) : ''
 
-      const nombreMostrado = selectedParticipante?.nombre_mostrado || (
-        isDoble
-          ? `${a1} - ${a2}`
-          : n1
-            ? `${n1.charAt(0).toUpperCase()}. ${a1}`
-            : a1
-      )
+      const nombreMostrado = selectedParticipante?.nombre_mostrado || `${a1} - ${a2}`
       const optimisticEntry = {
         id: insData.id,
         created_at: insData.created_at,
@@ -221,7 +186,7 @@ export default function InscripcionesClient({ userId }: Props) {
       }
       setInscriptos(prev => [optimisticEntry, ...prev])
 
-      setFormMsg({ type: 'success', text: '¡Jugador inscripto con éxito!' })
+      setFormMsg({ type: 'success', text: '¡Pareja inscripta con éxito!' })
       setSelectedParticipante(null)
       setSearchQuery('')
       setNuevoNombre('')
@@ -258,7 +223,7 @@ export default function InscripcionesClient({ userId }: Props) {
             Inscripciones
           </h2>
           <p className="text-slate-400 text-sm mt-1">
-            Buscá jugadores del club o dálos de alta para competir en el torneo actual.
+            Buscá parejas del club o dálas de alta para competir en el torneo actual.
           </p>
         </div>
         
@@ -323,88 +288,64 @@ export default function InscripcionesClient({ userId }: Props) {
               </select>
             </div>
 
-            {/* Ficha Jugador */}
+            {/* Ficha Pareja */}
             <div className="pt-2">
-              <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Jugador</label>
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Pareja</label>
 
-              {(() => {
-                const isDoble = torneos.find(t => t.id === torneoActivoId)?.modalidad === 'doble'
-
-                if (selectedParticipante) {
-                  return (
-                    <div className="flex items-center justify-between bg-brand-600/10 border border-brand-500/30 rounded-lg p-3">
-                      <div>
-                        <p className="text-sm text-brand-300 font-bold">{selectedParticipante.nombre_mostrado}</p>
-                        <p className="text-xs text-brand-500/70">Historial</p>
-                      </div>
-                      <button type="button" onClick={() => setSelectedParticipante(null)} className="text-xs text-red-400 hover:text-red-300 px-2 py-1 bg-red-400/10 rounded">Desvincular</button>
-                    </div>
-                  )
-                }
-
-                return (
-                  <div className="space-y-4">
-                    {!isDoble && (
-                      <>
-                        <div className="relative" ref={dropdownRef}>
-                          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                          <input
-                            type="text"
-                            placeholder="Buscar por nombre o apellido..."
-                            value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
-                            onFocus={() => { if (participantesDb.length > 0) setShowDropdown(true) }}
-                            className="input-field pl-10"
-                          />
-                          <AnimatePresence>
-                            {showDropdown && participantesDb.length > 0 && (
-                              <motion.div
-                                initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                className="absolute z-10 w-full mt-1 bg-surface-card border border-surface-border rounded-lg shadow-xl overflow-hidden"
-                              >
-                                {participantesDb.map(p => (
-                                  <button
-                                    key={p.id}
-                                    type="button"
-                                    onClick={() => { setSelectedParticipante(p); setShowDropdown(false); setSearchQuery('') }}
-                                    className="w-full text-left px-4 py-2.5 hover:bg-surface-hover text-sm border-b border-surface-border/50 last:border-0"
-                                  >
-                                    <span className="font-semibold text-slate-200">{p.nombre_mostrado}</span>
-                                    {(p.nombre || p.apellido) && <span className="text-slate-500 text-xs ml-2">({p.nombre} {p.apellido})</span>}
-                                  </button>
-                                ))}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="h-px bg-surface-border flex-1"></div>
-                          <span className="text-xs text-slate-500 font-semibold uppercase">O Crear Nuevo</span>
-                          <div className="h-px bg-surface-border flex-1"></div>
-                        </div>
-                      </>
-                    )}
-
-                    {isDoble ? (
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
-                          <input type="text" placeholder="Apellido Jugador 1" value={nuevoApellido} onChange={e => setNuevoApellido(e.target.value)} className="input-field" />
-                          <input type="text" placeholder="Apellido Jugador 2" value={nuevoApellido2} onChange={e => setNuevoApellido2(e.target.value)} className="input-field" />
-                        </div>
-                        <p className="text-[11px] text-slate-500">Ejemplo: Perez - Gomez</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
-                          <input type="text" placeholder="Inicial (Ej: J)" value={nuevoNombre} onChange={e => setNuevoNombre(e.target.value)} className="input-field" />
-                          <input type="text" placeholder="Apellido" value={nuevoApellido} onChange={e => setNuevoApellido(e.target.value)} className="input-field" />
-                        </div>
-                        <p className="text-[11px] text-slate-500">Formato generado: J. Apellido</p>
-                      </div>
-                    )}
+              {selectedParticipante ? (
+                <div className="flex items-center justify-between bg-brand-600/10 border border-brand-500/30 rounded-lg p-3">
+                  <div>
+                    <p className="text-sm text-brand-300 font-bold">{selectedParticipante.nombre_mostrado}</p>
+                    <p className="text-xs text-brand-500/70">Historial</p>
                   </div>
-                )
-              })()}
+                  <button type="button" onClick={() => setSelectedParticipante(null)} className="text-xs text-red-400 hover:text-red-300 px-2 py-1 bg-red-400/10 rounded">Desvincular</button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="relative" ref={dropdownRef}>
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="text"
+                      placeholder="Buscar pareja existente..."
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      onFocus={() => { if (participantesDb.length > 0) setShowDropdown(true) }}
+                      className="input-field pl-10"
+                    />
+                    <AnimatePresence>
+                      {showDropdown && participantesDb.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                          className="absolute z-10 w-full mt-1 bg-surface-card border border-surface-border rounded-lg shadow-xl overflow-hidden"
+                        >
+                          {participantesDb.map(p => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => { setSelectedParticipante(p); setShowDropdown(false); setSearchQuery('') }}
+                              className="w-full text-left px-4 py-2.5 hover:bg-surface-hover text-sm border-b border-surface-border/50 last:border-0"
+                            >
+                              <span className="font-semibold text-slate-200">{p.nombre_mostrado}</span>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="h-px bg-surface-border flex-1"></div>
+                    <span className="text-xs text-slate-500 font-semibold uppercase">O Crear Nueva Pareja</span>
+                    <div className="h-px bg-surface-border flex-1"></div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <input type="text" placeholder="Apellido Jugador 1" value={nuevoApellido} onChange={e => setNuevoApellido(e.target.value)} className="input-field" />
+                      <input type="text" placeholder="Apellido Jugador 2" value={nuevoApellido2} onChange={e => setNuevoApellido2(e.target.value)} className="input-field" />
+                    </div>
+                    <p className="text-[11px] text-slate-500">Ejemplo: Perez - Gomez</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {formMsg && (
@@ -429,7 +370,7 @@ export default function InscripcionesClient({ userId }: Props) {
         <div className={`${mobileTab === 'lista' ? 'block' : 'hidden'} lg:block`}>
           <div className="flex flex-col gap-3 mb-4">
             <div className="flex items-start justify-between px-1 gap-4 flex-wrap">
-              <h3 className="font-semibold text-slate-200">Jugadores Registrados</h3>
+              <h3 className="font-semibold text-slate-200">Parejas Registradas</h3>
               <div className="flex items-center gap-2 flex-wrap justify-end">
                 {(() => {
                   const catCounts: Record<string, { nombre: string; count: number }> = {}
@@ -480,9 +421,9 @@ export default function InscripcionesClient({ userId }: Props) {
               return (
                 <div className="bg-surface-card border border-surface-border border-dashed rounded-xl p-12 text-center text-slate-500">
                   {filterInscriptos.trim() 
-                    ? <p>No se encontraron jugadores que coincidan con la búsqueda.</p>
+                    ? <p>No se encontraron parejas que coincidan con la búsqueda.</p>
                     : <>
-                        <p>Todavía no hay jugadores en este torneo.</p>
+                        <p>Todavía no hay parejas inscriptas en este torneo.</p>
                         <p className="text-xs mt-1">Utilizá el formulario para dar la primera alta.</p>
                       </>
                   }

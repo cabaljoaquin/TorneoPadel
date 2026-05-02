@@ -137,7 +137,7 @@ export default function AdminLoginPage() {
         </div>
 
         <p className="text-center text-xs text-slate-700 mt-6">
-          TorneoTenis © 2025 — Plataforma de torneos amateur
+          TorneoPadel © 2025 — Plataforma de torneos amateur
         </p>
       </div>
     </div>

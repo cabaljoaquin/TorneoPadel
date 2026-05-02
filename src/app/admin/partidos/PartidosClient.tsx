@@ -3,7 +3,7 @@
 import { motion, Variants } from 'framer-motion'
 import { CheckCircle2, Clock, Trophy, Loader2, Search } from 'lucide-react'
 import { useState, useEffect, useMemo } from 'react'
-import { parseTennisScore } from '@/utils/scoreParser'
+import { parsePadelScore } from '@/utils/scoreParser'
 import { createClient } from '@/utils/supabase/client'
 
 interface Props {
@@ -147,7 +147,7 @@ export default function PartidosClient({ userId }: Props) {
     const winnerId = selectedWinners[id]
     if (!winnerId) return alert('Debes seleccionar al ganador del partido primero.')
     if (!scoreStr) return alert('Debes ingresar el resultado numérico (Ej: 6475).')
-    const parsedSets = parseTennisScore(scoreStr)
+    const parsedSets = parsePadelScore(scoreStr)
     if (parsedSets.length === 0) return alert('Formato de resultado inválido.')
 
     const stStr = stInputs[id]?.trim()
@@ -290,7 +290,7 @@ export default function PartidosClient({ userId }: Props) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
           <input
             type="text"
-            placeholder="Buscar por nombre de jugador..."
+            placeholder="Buscar por nombre de pareja..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="input-field w-full pl-10"

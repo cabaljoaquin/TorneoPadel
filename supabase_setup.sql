@@ -1,5 +1,5 @@
 -- =========================================================================
--- TORNEO TENIS - SCRIPT DE ACTUALIZACIÓN DE BASE DE DATOS (FASE CORE)
+-- TORNEO PADEL - SCRIPT DE ACTUALIZACIÓN DE BASE DE DATOS (FASE CORE)
 -- Ejecutá esto en el "SQL Editor" de Supabase.
 -- =========================================================================
 

@@ -103,7 +103,6 @@ export default function TorneosClient({ torneos: initialTorneos, userId }: Props
   const [nombre, setNombre] = useState('')
   const [slugInput, setSlugInput] = useState('')
   const [slugManual, setSlugManual] = useState(false)
-  const [modalidad, setModalidad] = useState('single')
   const [formato, setFormato] = useState<'grupos' | 'eliminatoria'>('grupos')
   const [creating, setCreating] = useState(false)
   const [loadingSedes, setLoadingSedes] = useState(false)
@@ -125,7 +124,7 @@ export default function TorneosClient({ torneos: initialTorneos, userId }: Props
     const slug = await generateUniqueSlug(supabase, slugInput || nombre)
     const { error } = await supabase.from('torneos').insert({
       nombre, slug, sede_id: sedeId || null, estado: 'En curso',
-      admin_id: userId, modalidad, formato, visible: true,
+      admin_id: userId, modalidad: 'doble', formato, visible: true,
     })
     if (!error) {
       setNombre(''); setSlugInput(''); setSlugManual(false); setShowCreateModal(false)
@@ -141,7 +140,6 @@ export default function TorneosClient({ torneos: initialTorneos, userId }: Props
   const [editTorneo, setEditTorneo] = useState<Torneo | null>(null)
   const [editNombre, setEditNombre] = useState('')
   const [editSlug, setEditSlug] = useState('')
-  const [editModalidad, setEditModalidad] = useState('single')
   const [editFormato, setEditFormato] = useState<'grupos' | 'eliminatoria'>('grupos')
   const [editSedeId, setEditSedeId] = useState('')
   const [editFecha, setEditFecha] = useState('')
@@ -151,7 +149,6 @@ export default function TorneosClient({ torneos: initialTorneos, userId }: Props
     setEditTorneo(t)
     setEditNombre(t.nombre)
     setEditSlug(t.slug ?? toSlug(t.nombre))
-    setEditModalidad(t.modalidad ?? 'single')
     setEditFormato(t.formato ?? 'grupos')
     setEditSedeId(t.sede_id ?? '')
     setEditFecha(t.fecha_inicio ?? '')
@@ -170,7 +167,7 @@ export default function TorneosClient({ torneos: initialTorneos, userId }: Props
     const { error } = await supabase.from('torneos').update({
       nombre: editNombre,
       slug,
-      modalidad: editModalidad,
+      modalidad: 'doble',
       formato: editFormato,
       sede_id: editSedeId || null,
       fecha_inicio: editFecha || null,
@@ -179,7 +176,7 @@ export default function TorneosClient({ torneos: initialTorneos, userId }: Props
     if (!error) {
       setTorneos(prev => prev.map(t =>
         t.id === editTorneo.id
-          ? { ...t, nombre: editNombre, slug, modalidad: editModalidad, formato: editFormato, sede_id: editSedeId || null, fecha_inicio: editFecha || null }
+          ? { ...t, nombre: editNombre, slug, modalidad: 'doble', formato: editFormato, sede_id: editSedeId || null, fecha_inicio: editFecha || null }
           : t
       ))
       push('Cambios guardados')
@@ -268,7 +265,7 @@ export default function TorneosClient({ torneos: initialTorneos, userId }: Props
                         ? new Date(t.fecha_inicio.slice(0, 10) + 'T12:00:00').toLocaleDateString('es-AR')
                         : 'Sin fecha'}
                     </span>
-                    <span className="capitalize opacity-70">{t.modalidad ?? 'single'}</span>
+                    <span className="capitalize opacity-70">Parejas</span>
                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${t.formato === 'eliminatoria'
                         ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
                         : 'bg-brand-500/10 text-brand-400 border border-brand-500/20'
@@ -365,19 +362,6 @@ export default function TorneosClient({ torneos: initialTorneos, userId }: Props
                 <p className="text-[10px] text-slate-600 mt-1">Se genera automáticamente. Podés editarlo.</p>
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Modalidad</label>
-                <div className="flex gap-4 p-1">
-                  {['single', 'doble'].map(m => (
-                    <label key={m} className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="modalidad-crear" value={m}
-                        checked={modalidad === m} onChange={e => setModalidad(e.target.value)}
-                        className="w-4 h-4" />
-                      <span className="text-sm font-semibold text-slate-300 capitalize">{m}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div>
                 <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Formato del Torneo</label>
                 <div className="grid grid-cols-2 gap-2">
                   {([
@@ -449,19 +433,6 @@ export default function TorneosClient({ torneos: initialTorneos, userId }: Props
                     onChange={e => setEditSlug(toSlug(e.target.value))} />
                 </div>
                 <p className="text-[10px] text-slate-600 mt-1">Cambiar el slug puede romper links externos existentes.</p>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Modalidad</label>
-                <div className="flex gap-4 p-1">
-                  {['single', 'doble'].map(m => (
-                    <label key={m} className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="modalidad-editar" value={m}
-                        checked={editModalidad === m} onChange={e => setEditModalidad(e.target.value)}
-                        className="w-4 h-4" />
-                      <span className="text-sm font-semibold text-slate-300 capitalize">{m}</span>
-                    </label>
-                  ))}
-                </div>
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Formato del Torneo</label>

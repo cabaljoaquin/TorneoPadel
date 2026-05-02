@@ -6,8 +6,8 @@ export const dynamic = 'force-dynamic'
 
 const PASOS = [
   { num: 1, label: 'Sede y Categorías',   desc: 'Configurá el club y las divisiones del torneo.',    href: '/admin/configuracion', icon: Settings   },
-  { num: 2, label: 'Inscripciones',       desc: 'Anotá a los jugadores (o parejas) por categoría.',  href: '/admin/inscripciones', icon: Users      },
-  { num: 3, label: 'Armado de Cuadros',   desc: 'Creá las zonas y asigná los jugadores.',            href: '/admin/cuadros',      icon: Network    },
+  { num: 2, label: 'Inscripciones',       desc: 'Anotá a las parejas por categoría.',                href: '/admin/inscripciones', icon: Users      },
+  { num: 3, label: 'Armado de Cuadros',   desc: 'Creá las zonas y asigná las parejas.',              href: '/admin/cuadros',      icon: Network    },
   { num: 4, label: 'Gestión de Partidos', desc: 'Cargá resultados del día.',                         href: '/admin/partidos',     icon: ListChecks },
 ]
 

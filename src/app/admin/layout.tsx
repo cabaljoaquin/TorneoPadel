@@ -7,8 +7,8 @@ export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | Admin — TorneoTenis',
-    default:  'Panel de Administración | TorneoTenis',
+    template: '%s | Admin — TorneoPadel',
+    default:  'Panel de Administración | TorneoPadel',
   },
 }
 

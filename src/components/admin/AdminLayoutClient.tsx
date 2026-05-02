@@ -46,10 +46,9 @@ export default function AdminLayoutClient({ children, torneoCount }: Props) {
               <p className="text-xs text-slate-500 mt-0.5 hidden md:block">Sistema de gestión de torneos</p>
             </div>
           </div>
-          {/* Decoración tenis — raqueta + pelota */}
-          <div className="flex items-center gap-1.5 select-none" title="TorneoTenis">
-            <span className="text-xl leading-none">🎾</span>
-            <span className="text-xl leading-none">🏸</span>
+          {/* Decoración padel — paleta + pelota */}
+          <div className="flex items-center gap-1.5 select-none" title="TorneoPadel">
+            <span className="text-xl leading-none">🏓</span>
           </div>
         </header>
 

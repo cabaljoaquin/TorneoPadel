@@ -1,5 +1,5 @@
 -- =========================================================================
--- TORNEO TENIS - ACTUALIZACIÓN SQL: INSCRIPCIONES Y PARTICIPANTES
+-- TORNEO PADEL - ACTUALIZACIÓN SQL: INSCRIPCIONES Y PARTICIPANTES
 -- Ejecutá esto en el "SQL Editor" de Supabase.
 -- =========================================================================
 
