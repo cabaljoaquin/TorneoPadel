@@ -1,6 +1,7 @@
 'use client'
 
 import { motion, Variants } from 'framer-motion'
+import { Clock, MapPin } from 'lucide-react'
 
 interface Match {
   id: string
@@ -16,6 +17,8 @@ interface Match {
   isP2Waiting?: boolean
   isHidden?: boolean
   bracket_index?: number
+  fechaHora?: string | null
+  sedeNombre?: string | null
 }
 
 interface Round {
@@ -134,6 +137,24 @@ export default function TournamentBracket({ rounds }: { rounds: Round[] }) {
                     ))}
                   </div>
                 </div>
+
+                {/* Fecha y Sede */}
+                {!match.isHidden && !match.finished && (match.fechaHora || match.sedeNombre) && (
+                  <div className="px-3 py-1.5 border-t border-surface-border/40 flex flex-wrap gap-x-3 gap-y-0.5">
+                    {match.fechaHora && (
+                      <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                        <Clock size={10} className="shrink-0" />
+                        {new Date(match.fechaHora).toLocaleString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
+                    {match.sedeNombre && (
+                      <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                        <MapPin size={10} className="shrink-0" />
+                        {match.sedeNombre}
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/* Conectores */}
                 {!match.isHidden && rIndex < rounds.length - 1 && (

@@ -110,7 +110,7 @@ function buildBracket(partidos: any[], configLlave?: any[]): any[] {
           const isActive = activeMatchIds.has(p.id)
           roundsMap[fase].push({
             id: p.id,
-            bracket_index: i, // Use the visual index
+            bracket_index: i,
             p1: p.p1?.nombre_mostrado || 'Esperando ganador...',
             p2: p.p2?.nombre_mostrado || 'Esperando ganador...',
             isP1Waiting: !p.p1,
@@ -122,6 +122,8 @@ function buildBracket(partidos: any[], configLlave?: any[]): any[] {
             finished: p.estado === 'finalizado',
             isPlaceholder: false,
             isHidden: !isActive,
+            fechaHora: p.fecha_hora || null,
+            sedeNombre: p.sedes?.nombre || null,
           })
         } else {
           roundsMap[fase].push({
@@ -350,7 +352,7 @@ function TorneoContent({ torneoId }: { torneoId: string }) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
-  const [categories, setCategories] = useState<{id: string, name: string}[]>([])
+  const [categories, setCategories] = useState<{id: string, name: string, slug: string}[]>([])
 
   const [zonas, setZonas] = useState<any[]>([])
   const [matches, setMatches] = useState<any[]>([])
@@ -360,7 +362,8 @@ function TorneoContent({ torneoId }: { torneoId: string }) {
   const [isPending, startTransition] = useTransition()
   const [torneoFormato, setTorneoFormato] = useState<'grupos' | 'eliminatoria'>('grupos')
 
-  const currentCatId = searchParams.get('cat') || categories[0]?.id
+  const currentCatSlug = searchParams.get('cat') || categories[0]?.slug
+  const currentCatId = categories.find(c => c.slug === currentCatSlug)?.id || categories[0]?.id
   const [fase, setFase] = useState<'zonas'|'eliminatorias'|'campeones'>('zonas')
   const [showChampionCard, setShowChampionCard] = useState(false)
   const [shownChampionsCatIds, setShownChampionsCatIds] = useState<Set<string>>(new Set())
@@ -369,7 +372,7 @@ function TorneoContent({ torneoId }: { torneoId: string }) {
     async function loadConfig() {
       const [tResult, catResult, matchResult, inscripciones, zonas, partidos, configs] = await Promise.all([
         supabase.from('torneos').select('formato').eq('id', torneoId).single(),
-        supabase.from('categorias').select('id, nombre').order('nombre'),
+        supabase.from('categorias').select('id, nombre, slug').order('nombre'),
         supabase
           .from('partidos')
           .select(`id, resultado, ganador_id,
@@ -404,7 +407,8 @@ function TorneoContent({ torneoId }: { torneoId: string }) {
         const activeCategories = catResult.data.filter(c => activeCatIds.has(c.id))
         
         // Showing only categories with generated groups or brackets
-        setCategories(activeCategories.map(d => ({ id: d.id, name: d.nombre })))
+        const toSlug = (str: string) => str.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+        setCategories(activeCategories.map(d => ({ id: d.id, name: d.nombre, slug: d.slug ?? toSlug(d.nombre) })))
       }
       if (matchResult.data) setRecentMatches(matchResult.data)
     }
@@ -574,9 +578,10 @@ function TorneoContent({ torneoId }: { torneoId: string }) {
     }
   }, [showChampionCard])
 
-  const handleTabClick = (catId: string) => {
+  const handleTabClick = (catSlug: string) => {
+    if (!catSlug) return
     startTransition(() => {
-      router.push(`?cat=${catId}`, { scroll: false })
+      router.push(`?cat=${catSlug}`, { scroll: false })
     })
   }
 
