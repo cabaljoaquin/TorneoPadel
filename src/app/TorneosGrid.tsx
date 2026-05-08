@@ -1,8 +1,10 @@
 'use client'
 
+import { useState, useEffect, useCallback } from 'react'
 import { motion, Variants } from 'framer-motion'
 import Link from 'next/link'
 import { Users, CalendarDays, Trophy, ArrowRight } from 'lucide-react'
+import { createClient } from '@/utils/supabase/client'
 
 interface Torneo {
   id: string
@@ -38,7 +40,40 @@ function formatDate(dateStr: string | null) {
   })
 }
 
-export function TorneosGrid({ torneos }: Props) {
+export function TorneosGrid({ torneos: initialTorneos }: Props) {
+  const [torneos, setTorneos] = useState<Torneo[]>(initialTorneos)
+  const supabase = createClient()
+
+  const fetchTorneos = useCallback(async () => {
+    const { data } = await supabase
+      .from('torneos')
+      .select('id, nombre, slug, estado, modalidad, created_at, fecha_inicio, sedes(nombre)')
+      .eq('visible', true)
+      .order('created_at', { ascending: false })
+      .limit(9)
+      
+    if (data) {
+      const sorted = data.sort((a, b) => {
+        if (a.estado === 'En curso' && b.estado !== 'En curso') return -1
+        if (b.estado === 'En curso' && a.estado !== 'En curso') return 1
+        return 0
+      })
+      setTorneos(sorted as Torneo[])
+    }
+  }, [supabase])
+
+  useEffect(() => {
+    const channel = supabase.channel('realtime-torneos')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'torneos' }, () => {
+        fetchTorneos()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, fetchTorneos])
+
   if (torneos.length === 0) {
     return (
       <motion.div

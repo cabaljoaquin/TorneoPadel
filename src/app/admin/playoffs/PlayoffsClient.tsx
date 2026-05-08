@@ -109,10 +109,12 @@ export default function PlayoffsClient({ userId }: Props) {
   useEffect(() => {
     if (!userId) return
     async function init() {
-      const [{ data: ts }, { data: cs }] = await Promise.all([
-        supabase.from('torneos').select('id, nombre').eq('admin_id', userId).neq('estado', 'Finalizado').order('created_at', { ascending: false }),
-        supabase.from('categorias').select('id, nombre').order('nombre'),
-      ])
+      const { data: ts } = await supabase
+        .from('torneos')
+        .select('id, nombre')
+        .eq('admin_id', userId)
+        .neq('estado', 'Finalizado')
+        .order('created_at', { ascending: false })
       if (ts && ts.length > 0) {
         setTorneos(ts)
         setTorneoActivo(ts[0].id)
@@ -120,13 +122,33 @@ export default function PlayoffsClient({ userId }: Props) {
         setTorneos([])
         setLoading(false)
       }
-      if (cs && cs.length > 0) {
-        setCategorias(cs)
-        setCategoriaActiva(cs[0].id)
-      }
     }
     init()
   }, [userId])
+
+  // Cargar solo las categorías con inscriptos en el torneo activo
+  useEffect(() => {
+    if (!torneoActivo) return
+    async function loadCategorias() {
+      const { data: ins } = await supabase
+        .from('inscripciones')
+        .select('categoria_id, categorias(id, nombre)')
+        .eq('torneo_id', torneoActivo)
+
+      const seen = new Set<string>()
+      const cs: any[] = []
+      for (const row of ins || []) {
+        const cat = row.categorias as any
+        if (cat && !seen.has(cat.id)) {
+          seen.add(cat.id)
+          cs.push(cat)
+        }
+      }
+      setCategorias(cs)
+      setCategoriaActiva(cs[0]?.id ?? '')
+    }
+    loadCategorias()
+  }, [torneoActivo])
 
   useEffect(() => {
     if (torneoActivo && categoriaActiva) loadWorkspace()

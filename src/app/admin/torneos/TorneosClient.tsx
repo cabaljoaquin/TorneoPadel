@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import {
   Trophy, Plus, Calendar, MapPin, Loader2, CheckCircle2, Circle,
-  Pencil, Eye, EyeOff, X, Save, CheckCheck
+  Pencil, Eye, EyeOff, X, Save, CheckCheck, ExternalLink
 } from 'lucide-react'
 
 interface Torneo {
@@ -247,7 +248,15 @@ export default function TorneosClient({ torneos: initialTorneos, userId }: Props
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-slate-100 text-base leading-tight truncate">{t.nombre}</h3>
+                    <Link
+                      href={`/torneo/${t.slug || t.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold text-slate-100 text-base leading-tight truncate hover:text-brand-400 transition-colors flex items-center gap-1.5 group/link"
+                    >
+                      {t.nombre}
+                      <ExternalLink size={12} className="opacity-0 group-hover/link:opacity-60 transition-opacity shrink-0" />
+                    </Link>
                     {!t.visible && (
                       <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-700/80 text-slate-400 border border-slate-600/40 shrink-0">
                         Oculto

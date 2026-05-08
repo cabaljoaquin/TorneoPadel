@@ -34,6 +34,7 @@ export default function CuadrosWorkspace({ userId }: Props) {
   const [isGeneratingCruces, setIsGeneratingCruces] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [lastSedeId, setLastSedeId] = useState<Record<string, string>>({})
 
   // Knockout-specific state
   const [knockoutForm, setKnockoutForm] = useState({ id: '', p1: '', p2: '', fase: '32avos de Final', fechaHora: '', sedeId: '' })
@@ -45,10 +46,15 @@ export default function CuadrosWorkspace({ userId }: Props) {
     return t?.formato === 'eliminatoria' ? 'eliminatoria' : 'grupos'
   })()
 
+  // Devuelve la sede por defecto: sede del torneo > última usada en este torneo > vacío
+  const getDefaultSedeId = () => {
+    const t = torneos.find(t => t.id === torneoActivo)
+    return t?.sede_id || lastSedeId[torneoActivo] || ''
+  }
+
   useEffect(() => {
     if (!userId) return
     async function init() {
-      // Solo torneos de este admin
       const { data: ts } = await supabase
         .from('torneos')
         .select('*')
@@ -63,17 +69,35 @@ export default function CuadrosWorkspace({ userId }: Props) {
         setLoading(false)
       }
 
-      const { data: cs } = await supabase.from('categorias').select('*')
-      if (cs && cs.length > 0) {
-        setCategorias(cs)
-        setCategoriaActiva(cs[0].id)
-      }
-
       const { data: sds } = await supabase.from('sedes').select('*')
       if (sds) setSedes(sds)
     }
     init()
   }, [userId])
+
+  // Cargar solo las categorías con inscriptos en el torneo activo
+  useEffect(() => {
+    if (!torneoActivo) return
+    async function loadCategorias() {
+      const { data: ins } = await supabase
+        .from('inscripciones')
+        .select('categoria_id, categorias(id, nombre)')
+        .eq('torneo_id', torneoActivo)
+
+      const seen = new Set<string>()
+      const cs: any[] = []
+      for (const row of ins || []) {
+        const cat = row.categorias as any
+        if (cat && !seen.has(cat.id)) {
+          seen.add(cat.id)
+          cs.push(cat)
+        }
+      }
+      setCategorias(cs)
+      setCategoriaActiva(cs[0]?.id ?? '')
+    }
+    loadCategorias()
+  }, [torneoActivo])
 
   useEffect(() => {
     if (torneoActivo && categoriaActiva) loadWorkspace(torneoActivo, categoriaActiva)
@@ -224,6 +248,8 @@ export default function CuadrosWorkspace({ userId }: Props) {
     setMatchForm({ id: '', p1: '', p2: '', fechaHora: '', sedeId: '', fase: 'Fase de Grupos' })
     setIsModalOpen(false)
     setIsSavingMatch(false)
+    // Persistir la sede usada para este torneo
+    if (matchForm.sedeId) setLastSedeId(prev => ({ ...prev, [torneoActivo]: matchForm.sedeId }))
     // Reload to get fresh partido data with participant names
     loadWorkspace(torneoActivo, categoriaActiva, false)
   }
@@ -530,8 +556,12 @@ export default function CuadrosWorkspace({ userId }: Props) {
         await Promise.all(updates)
       }
 
+      const usedSedeId = knockoutForm.sedeId
       setIsSavingKnockout(false)
-      setKnockoutForm({ id: '', p1: '', p2: '', fase: knockoutForm.fase, fechaHora: '', sedeId: '' })
+      // Persistir la sede usada para este torneo
+      if (usedSedeId) setLastSedeId(prev => ({ ...prev, [torneoActivo]: usedSedeId }))
+      // Pre-rellenar la sede para el próximo partido
+      setKnockoutForm({ id: '', p1: '', p2: '', fase: knockoutForm.fase, fechaHora: '', sedeId: getDefaultSedeId() || usedSedeId })
       loadWorkspace(torneoActivo, categoriaActiva, false)
     }
 
@@ -794,7 +824,7 @@ export default function CuadrosWorkspace({ userId }: Props) {
                           disabled={jDeEstaZona.length < 2 || playoffsGenerados}
                           onClick={() => {
                             setZonaScheduling({ zona, jugadores: jDeEstaZona })
-                            setMatchForm({ id: '', p1: '', p2: '', fechaHora: '', sedeId: '', fase: 'Fase de Grupos' })
+                            setMatchForm({ id: '', p1: '', p2: '', fechaHora: '', sedeId: getDefaultSedeId(), fase: 'Fase de Grupos' })
                             setIsModalOpen(true)
                           }}
                           className="w-full text-xs py-2 bg-brand-600/10 hover:bg-brand-500 hover:text-white border border-brand-500/30 font-semibold uppercase tracking-wider rounded-lg text-brand-400 transition-colors disabled:opacity-30 disabled:pointer-events-none"

@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, Variants } from 'framer-motion'
-import { CheckCircle2, Clock, Trophy, Loader2, Search } from 'lucide-react'
+import { CheckCircle2, Clock, Trophy, Loader2, Search, MapPin, Pencil, X } from 'lucide-react'
 import { useState, useEffect, useMemo } from 'react'
 import { parsePadelScore } from '@/utils/scoreParser'
 import { createClient } from '@/utils/supabase/client'
@@ -38,6 +38,10 @@ export default function PartidosClient({ userId }: Props) {
   const [filterFase, setFilterFase] = useState<string>('all')
   const [filterTorneo, setFilterTorneo] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState<string>('')
+  const [sedes, setSedes] = useState<{id: string, nombre: string}[]>([])
+  const [logisticaOpen, setLogisticaOpen] = useState<string | null>(null)
+  const [logisticaForm, setLogisticaForm] = useState<Record<string, { sedeId: string; fechaHora: string }>>({})
+  const [savingLogistica, setSavingLogistica] = useState<string | null>(null)
 
   // Cargamos los IDs de torneos del admin actual al montar
   useEffect(() => {
@@ -56,8 +60,13 @@ export default function PartidosClient({ userId }: Props) {
       const { data } = await supabase.from('categorias').select('id, nombre').order('nombre')
       if (data) setCategories(data)
     }
+    async function loadSedes() {
+      const { data } = await supabase.from('sedes').select('id, nombre').order('nombre')
+      if (data) setSedes(data)
+    }
     loadTorneos()
     loadCategories()
+    loadSedes()
   }, [userId])
 
   const fetchMatches = async () => {
@@ -74,7 +83,7 @@ export default function PartidosClient({ userId }: Props) {
     let query = supabase
       .from('partidos')
       .select(`
-        id, fecha_hora, estado, participante_1_id, participante_2_id, ganador_id, resultado, fase_bracket,
+        id, fecha_hora, estado, sede_id, participante_1_id, participante_2_id, ganador_id, resultado, fase_bracket,
         siguiente_partido_id, posicion_siguiente_partido, updated_at,
         sedes(nombre),
         p1:participantes!participante_1_id(id, nombre_mostrado),
@@ -242,6 +251,37 @@ export default function PartidosClient({ userId }: Props) {
     setSavingMatchId(null)
   }
 
+  const openLogistica = (match: any) => {
+    setLogisticaOpen(match.id)
+    setLogisticaForm(prev => ({
+      ...prev,
+      [match.id]: {
+        sedeId: match.sede_id || '',
+        fechaHora: match.fecha_hora ? new Date(match.fecha_hora).toISOString().slice(0, 16) : ''
+      }
+    }))
+  }
+
+  const handleSaveLogistica = async (matchId: string) => {
+    const form = logisticaForm[matchId]
+    if (!form) return
+    setSavingLogistica(matchId)
+    const { error } = await supabase.from('partidos').update({
+      sede_id: form.sedeId || null,
+      fecha_hora: form.fechaHora ? new Date(form.fechaHora).toISOString() : null
+    }).eq('id', matchId)
+    if (!error) {
+      setMatches(prev => prev.map(m => m.id === matchId
+        ? { ...m, sede_id: form.sedeId || null,
+            fecha_hora: form.fechaHora ? new Date(form.fechaHora).toISOString() : null,
+            sedes: sedes.find(s => s.id === form.sedeId) ? { nombre: sedes.find(s => s.id === form.sedeId)!.nombre } : null }
+        : m
+      ))
+      setLogisticaOpen(null)
+    }
+    setSavingLogistica(null)
+  }
+
   const filteredMatches = matches.filter(m => {
     if (!searchTerm) return true
     const term = searchTerm.toLowerCase()
@@ -313,70 +353,138 @@ export default function PartidosClient({ userId }: Props) {
               <motion.div
                 key={match.id}
                 variants={itemVariants}
-                className={`bg-surface-card border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-lg transition-colors ${selectedWinners[match.id] ? 'border-brand-500/40' : 'border-surface-border'}`}
+                className={`bg-surface-card border rounded-xl overflow-hidden shadow-lg transition-colors ${selectedWinners[match.id] ? 'border-brand-500/40' : 'border-surface-border'}`}
               >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">
-                    <Clock size={13} />
-                    {match.fecha_hora ? new Date(match.fecha_hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
-                    <span className="text-slate-600">•</span> {match.sedes?.nombre || 'Sede N/A'}
-                    {match.fase_bracket && match.fase_bracket !== 'Fase de Grupos' && (
-                      <span className="ml-auto bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-md text-[10px] uppercase font-bold tracking-widest">
-                        {match.fase_bracket}
-                      </span>
-                    )}
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 px-4 py-2.5 border-b border-surface-border/60 uppercase tracking-wider flex-wrap">
+                  <Clock size={13} />
+                  {match.fecha_hora ? new Date(match.fecha_hora).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                  <span className="text-slate-600">&bull;</span>
+                  <MapPin size={11} />
+                  <span className="truncate max-w-[120px]">{match.sedes?.nombre || 'Sin sede'}</span>
+                  {match.fase_bracket && match.fase_bracket !== 'Fase de Grupos' && (
+                    <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-md text-[10px] uppercase font-bold tracking-widest whitespace-nowrap">
+                      {match.fase_bracket}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => logisticaOpen === match.id ? setLogisticaOpen(null) : openLogistica(match)}
+                    className="ml-auto p-1 rounded hover:bg-white/10 text-slate-500 hover:text-brand-400 transition-colors"
+                    title="Editar sede, fecha y hora"
+                  >
+                    {logisticaOpen === match.id ? <X size={13} /> : <Pencil size={13} />}
+                  </button>
+                </div>
+
+                {logisticaOpen === match.id && (
+                  <div className="px-4 py-3 bg-surface/60 border-b border-surface-border/60 flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1 flex flex-col gap-1">
+                      <label className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Sede</label>
+                      <select
+                        className="select-field text-sm py-2"
+                        value={logisticaForm[match.id]?.sedeId || ''}
+                        onChange={e => setLogisticaForm(prev => ({ ...prev, [match.id]: { ...prev[match.id], sedeId: e.target.value } }))}
+                      >
+                        <option value="">Sin sede</option>
+                        {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex-1 flex flex-col gap-1">
+                      <label className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Fecha y hora</label>
+                      <input
+                        type="datetime-local"
+                        className="input-field text-sm py-2"
+                        value={logisticaForm[match.id]?.fechaHora || ''}
+                        onChange={e => setLogisticaForm(prev => ({ ...prev, [match.id]: { ...prev[match.id], fechaHora: e.target.value } }))}
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        onClick={() => handleSaveLogistica(match.id)}
+                        disabled={savingLogistica === match.id}
+                        className="w-full sm:w-auto px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        {savingLogistica === match.id ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+                        Guardar
+                      </button>
+                    </div>
                   </div>
+                )}
+
+                <div className="p-4 flex flex-col gap-4">
                   <div className="space-y-2">
                     {match.p1 ? (
                       <button onClick={() => handleWinnerSelect(match.id, match.p1.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg border transition-all ${isP1Winner ? 'bg-brand-600/20 border-brand-500 text-brand-400 font-bold' : 'bg-surface/50 border-transparent hover:border-slate-700 text-slate-200'}`}>
-                        {match.p1.nombre_mostrado} {isP1Winner && '🏆'}
+                        className={`w-full text-left px-4 py-3 rounded-xl border transition-all text-sm font-medium ${isP1Winner ? 'bg-brand-600/20 border-brand-500 text-brand-300 font-bold shadow-inner shadow-brand-900/20' : 'bg-surface/50 border-transparent hover:border-slate-700 text-slate-200'}`}>
+                        <span className="flex items-center justify-between">
+                          <span>{match.p1.nombre_mostrado}</span>
+                          {isP1Winner && <span className="text-base">🏆</span>}
+                        </span>
                       </button>
                     ) : (
-                      <div className="w-full text-left px-3 py-2 rounded-lg border border-dashed border-surface-border text-slate-500 italic text-sm bg-surface/30">Esperando ganador...</div>
+                      <div className="w-full px-4 py-3 rounded-xl border border-dashed border-surface-border text-slate-500 italic text-sm bg-surface/30">Esperando ganador...</div>
                     )}
-                    
+
+                    <div className="flex items-center gap-2 px-1">
+                      <div className="flex-1 h-px bg-surface-border/50" />
+                      <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">VS</span>
+                      <div className="flex-1 h-px bg-surface-border/50" />
+                    </div>
+
                     {match.p2 ? (
                       <button onClick={() => handleWinnerSelect(match.id, match.p2.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg border transition-all ${isP2Winner ? 'bg-brand-600/20 border-brand-500 text-brand-400 font-bold' : 'bg-surface/50 border-transparent hover:border-slate-700 text-slate-200'}`}>
-                        {match.p2.nombre_mostrado} {isP2Winner && '🏆'}
+                        className={`w-full text-left px-4 py-3 rounded-xl border transition-all text-sm font-medium ${isP2Winner ? 'bg-brand-600/20 border-brand-500 text-brand-300 font-bold shadow-inner shadow-brand-900/20' : 'bg-surface/50 border-transparent hover:border-slate-700 text-slate-200'}`}>
+                        <span className="flex items-center justify-between">
+                          <span>{match.p2.nombre_mostrado}</span>
+                          {isP2Winner && <span className="text-base">🏆</span>}
+                        </span>
                       </button>
                     ) : (
-                      <div className="w-full text-left px-3 py-2 rounded-lg border border-dashed border-surface-border text-slate-500 italic text-sm bg-surface/30">Esperando ganador...</div>
+                      <div className="w-full px-4 py-3 rounded-xl border border-dashed border-surface-border text-slate-500 italic text-sm bg-surface/30">Esperando ganador...</div>
                     )}
                   </div>
-                </div>
-                <div className={`flex flex-col gap-2 transition-opacity duration-300 ${selectedWinners[match.id] ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
-                  <label className="text-xs text-brand-400 font-medium text-center md:text-right">Resultado de los Sets</label>
-                  <div className="flex items-center gap-2 self-center md:self-end">
-                    <input
-                      type="text"
-                      placeholder="Ex: 6475"
-                      disabled={savingMatchId !== null || loading}
-                      value={inputs[match.id] || ''}
-                      onChange={e => setInputs(prev => ({ ...prev, [match.id]: e.target.value }))}
-                      onKeyDown={e => e.key === 'Enter' && handleScoreSubmit(match.id)}
-                      className={`w-32 md:w-40 hover:bg-surface-hover/50 border border-surface-border rounded-lg outline-none px-2 md:px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all text-center tracking-widest font-mono ${tab === 'finalizados' ? 'bg-brand-900/10' : 'bg-surface'}`}
-                    />
-                    <div className="relative">
-                      <input
-                        type="text"
-                          placeholder="Ej: 10-8"
+
+                  <div className={`flex flex-col gap-3 pt-3 border-t border-surface-border/50 transition-opacity duration-300 ${selectedWinners[match.id] ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+                    <p className="text-xs text-brand-400 font-semibold uppercase tracking-widest">Resultado</p>
+
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="flex-1 flex flex-col gap-1">
+                        <label className="text-[10px] text-slate-500 font-medium uppercase tracking-wider pl-1">Sets (ej: 6475)</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="6475"
+                          disabled={savingMatchId !== null || loading}
+                          value={inputs[match.id] || ''}
+                          onChange={e => setInputs(prev => ({ ...prev, [match.id]: e.target.value }))}
+                          onKeyDown={e => e.key === 'Enter' && handleScoreSubmit(match.id)}
+                          className={`w-full border border-surface-border rounded-xl outline-none px-4 py-3 text-base text-slate-100 placeholder-slate-600 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all text-center tracking-widest font-mono ${tab === 'finalizados' ? 'bg-brand-900/10' : 'bg-surface'}`}
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1 sm:w-28">
+                        <label className="text-[10px] text-amber-500/80 font-medium uppercase tracking-wider pl-1">Super TB (ej: 10-8)</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="10-8"
                           disabled={savingMatchId !== null || loading}
                           value={stInputs[match.id] || ''}
                           onChange={e => setStInputs(prev => ({ ...prev, [match.id]: e.target.value }))}
                           onKeyDown={e => e.key === 'Enter' && handleScoreSubmit(match.id)}
-                          className={`w-24 md:w-28 rounded-lg outline-none px-1 md:px-3 py-2.5 text-xs text-amber-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50 transition-all text-center tracking-wider font-mono ${stInputs[match.id] ? 'border border-amber-500/30 bg-amber-950/20 placeholder-amber-700' : 'border border-dashed border-slate-600 bg-transparent placeholder-slate-700'} ${tab === 'finalizados' && stInputs[match.id] ? 'bg-amber-900/10' : ''}`}
-                      />
-                      <span className="absolute -top-2 left-2 text-[9px] font-bold uppercase tracking-widest text-amber-500/70 bg-surface-card px-1">STB</span>
+                          className={`w-full rounded-xl outline-none px-3 py-3 text-sm text-amber-300 focus:ring-1 transition-all text-center tracking-wider font-mono ${stInputs[match.id] ? 'border border-amber-500/30 bg-amber-950/20 placeholder-amber-700' : 'border border-dashed border-slate-600 bg-transparent placeholder-slate-700'}`}
+                        />
+                      </div>
                     </div>
+
                     <button
                       onClick={() => handleScoreSubmit(match.id)}
                       disabled={savingMatchId !== null || loading}
-                      className="p-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white transition-all disabled:opacity-50 flex-shrink-0"
-                      title="Guardar partido"
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm transition-all disabled:opacity-50 active:scale-[0.98]"
                     >
-                      {savingMatchId === match.id ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
+                      {savingMatchId === match.id
+                        ? <><Loader2 size={18} className="animate-spin" /> Guardando...</>
+                        : <><CheckCircle2 size={18} /> Confirmar Resultado</>
+                      }
                     </button>
                   </div>
                 </div>
